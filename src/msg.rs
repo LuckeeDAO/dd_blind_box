@@ -73,11 +73,11 @@ pub struct ConfigResponse {
     pub first_prize_count: u32,
 }
 
-/// 迁移参数：切换规模（将调整总供应量）和一等奖中奖人数
+/// 迁移参数：空置接口，为未来升级预留
 #[cw_serde]
-pub struct MigrateMsg { 
-    pub scale: Scale,
-    pub first_prize_count: Option<u32>,  // 可选的一等奖中奖人数，如果不提供则使用规模默认值
+pub struct MigrateMsg {
+    // 空置接口，当前不需要任何参数
+    // 为未来可能的合约升级预留
 }
 
 /// 充值查询返回：累计充值本金（字符串表示）

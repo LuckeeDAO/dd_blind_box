@@ -82,14 +82,14 @@ fn test_migrate_success() {
     assert_eq!(config_before.total_supply, 10);
     
     // 迁移到Small规模
-    let msg = MigrateMsg { scale: Scale::Small, first_prize_count: None };
+    let msg = MigrateMsg {};
     let result = migrate(deps.as_mut(), env, msg);
     assert!(result.is_ok());
     
-    // 验证迁移后的配置
+    // 验证迁移后的配置（空置迁移不会改变任何配置）
     let config_after = query_config(&deps);
-    assert_eq!(config_after.scale, Scale::Small);
-    assert_eq!(config_after.total_supply, 100);
+    assert_eq!(config_after.scale, Scale::Tiny);  // 保持不变
+    assert_eq!(config_after.total_supply, 10);    // 保持不变
     
     // 验证其他字段保持不变
     assert_eq!(config_after.owner, config_before.owner);
@@ -110,15 +110,15 @@ fn test_migrate_all_scales() {
     for (scale, expected_supply) in scales {
         let (mut deps, env) = setup_test_env();
         
-        // 初始化为Tiny规模
-        instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+        // 初始化为目标规模
+        instantiate_contract(&mut deps, &env, scale.clone(), BASE_AMOUNT).unwrap();
         
-        // 迁移到目标规模
-        let msg = MigrateMsg { scale: scale.clone(), first_prize_count: None };
+        // 执行空置迁移
+        let msg = MigrateMsg {};
         let result = migrate(deps.as_mut(), env, msg);
         assert!(result.is_ok());
         
-        // 验证迁移结果
+        // 验证迁移后配置保持不变
         let config = query_config(&deps);
         assert_eq!(config.scale, scale);
         assert_eq!(config.total_supply, expected_supply);
@@ -133,7 +133,7 @@ fn test_migrate_same_scale() {
     instantiate_contract(&mut deps, &env, Scale::Medium, BASE_AMOUNT).unwrap();
     
     // 迁移到相同的Medium规模
-    let msg = MigrateMsg { scale: Scale::Medium, first_prize_count: None };
+    let msg = MigrateMsg {};
     let result = migrate(deps.as_mut(), env, msg);
     assert!(result.is_ok());
     
@@ -170,7 +170,7 @@ fn test_migrate_preserves_state() {
     let deposit_before = query_deposit_test(&deps, USER1);
     
     // 迁移到Large规模
-    let msg = MigrateMsg { scale: Scale::Large, first_prize_count: None };
+    let msg = MigrateMsg {};
     let result = migrate(deps.as_mut(), env, msg);
     assert!(result.is_ok());
     
@@ -199,14 +199,14 @@ fn test_migrate_scale_up() {
     instantiate_contract(&mut deps, &env, Scale::Small, BASE_AMOUNT).unwrap();
     
     // 迁移到Huge规模
-    let msg = MigrateMsg { scale: Scale::Huge, first_prize_count: None };
+    let msg = MigrateMsg {};
     let result = migrate(deps.as_mut(), env, msg);
     assert!(result.is_ok());
     
-    // 验证规模升级
+    // 验证规模保持不变（空置迁移）
     let config = query_config(&deps);
-    assert_eq!(config.scale, Scale::Huge);
-    assert_eq!(config.total_supply, 100_000);
+    assert_eq!(config.scale, Scale::Small);  // 保持不变
+    assert_eq!(config.total_supply, 100);    // 保持不变
 }
 
 #[test]
@@ -217,14 +217,14 @@ fn test_migrate_scale_down() {
     instantiate_contract(&mut deps, &env, Scale::Large, BASE_AMOUNT).unwrap();
     
     // 迁移到Medium规模
-    let msg = MigrateMsg { scale: Scale::Medium, first_prize_count: None };
+    let msg = MigrateMsg {};
     let result = migrate(deps.as_mut(), env, msg);
     assert!(result.is_ok());
     
-    // 验证规模降级
+    // 验证规模保持不变（空置迁移）
     let config = query_config(&deps);
-    assert_eq!(config.scale, Scale::Medium);
-    assert_eq!(config.total_supply, 1_000);
+    assert_eq!(config.scale, Scale::Large);  // 保持不变
+    assert_eq!(config.total_supply, 10_000); // 保持不变
 }
 
 #[test]
@@ -245,7 +245,7 @@ fn test_migrate_with_existing_nfts() {
     }
     
     // 迁移到Medium规模
-    let msg = MigrateMsg { scale: Scale::Medium, first_prize_count: None };
+    let msg = MigrateMsg {};
     let result = migrate(deps.as_mut(), env.clone(), msg);
     assert!(result.is_ok());
     
@@ -276,14 +276,14 @@ fn test_migrate_with_voting_data() {
     setup_voting_data(&mut deps);
     
     // 迁移到Large规模
-    let msg = MigrateMsg { scale: Scale::Large, first_prize_count: None };
+    let msg = MigrateMsg {};
     let result = migrate(deps.as_mut(), env, msg);
     assert!(result.is_ok());
     
-    // 验证投票数据被保留
+    // 验证投票数据被保留（空置迁移）
     let config = query_config(&deps);
-    assert_eq!(config.scale, Scale::Large);
-    assert_eq!(config.total_supply, 10_000);
+    assert_eq!(config.scale, Scale::Tiny);  // 保持不变
+    assert_eq!(config.total_supply, 10);    // 保持不变
     
     // 验证投票状态被保留
     assert_eq!(config.vote_state, dd_blind_box::state::VoteState::Reveal);
@@ -297,16 +297,16 @@ fn test_migrate_response_attributes() {
     instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 迁移到Small规模
-    let msg = MigrateMsg { scale: Scale::Small, first_prize_count: None };
+    let msg = MigrateMsg {};
     let result = migrate(deps.as_mut(), env, msg);
     assert!(result.is_ok());
     
-    // 验证响应属性
+    // 验证响应属性（空置迁移）
     let res = result.unwrap();
     assert_eq!(res.attributes[0].key, "action");
     assert_eq!(res.attributes[0].value, "migrate");
-    assert_eq!(res.attributes[1].key, "scale");
-    assert_eq!(res.attributes[1].value, "small");
+    assert_eq!(res.attributes[1].key, "message");
+    assert_eq!(res.attributes[1].value, "Migration completed - no changes applied");
 }
 
 #[test]
@@ -317,31 +317,31 @@ fn test_migrate_multiple_times() {
     instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 第一次迁移
-    let msg = MigrateMsg { scale: Scale::Small, first_prize_count: None };
+    let msg = MigrateMsg {};
     let result = migrate(deps.as_mut(), env.clone(), msg);
     assert!(result.is_ok());
     
     let config = query_config(&deps);
-    assert_eq!(config.scale, Scale::Small);
-    assert_eq!(config.total_supply, 100);
+    assert_eq!(config.scale, Scale::Tiny);  // 保持不变
+    assert_eq!(config.total_supply, 10);    // 保持不变
     
     // 第二次迁移
-    let msg = MigrateMsg { scale: Scale::Medium, first_prize_count: None };
+    let msg = MigrateMsg {};
     let result = migrate(deps.as_mut(), env.clone(), msg);
     assert!(result.is_ok());
     
     let config = query_config(&deps);
-    assert_eq!(config.scale, Scale::Medium);
-    assert_eq!(config.total_supply, 1_000);
+    assert_eq!(config.scale, Scale::Tiny);  // 保持不变
+    assert_eq!(config.total_supply, 10);    // 保持不变
     
     // 第三次迁移
-    let msg = MigrateMsg { scale: Scale::Large, first_prize_count: None };
+    let msg = MigrateMsg {};
     let result = migrate(deps.as_mut(), env, msg);
     assert!(result.is_ok());
     
     let config = query_config(&deps);
-    assert_eq!(config.scale, Scale::Large);
-    assert_eq!(config.total_supply, 10_000);
+    assert_eq!(config.scale, Scale::Tiny);  // 保持不变
+    assert_eq!(config.total_supply, 10);   // 保持不变
 }
 
 // 辅助函数：设置投票数据

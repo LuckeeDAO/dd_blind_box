@@ -409,20 +409,17 @@ fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     })
 }
 
-/// 迁移：根据新规模调整总供应量与 scale 字段，以及一等奖中奖人数
-pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
-    let mut cfg = CONFIG.load(deps.storage)?;
-    let new_total: u64 = msg.scale.total_supply();
-    let new_first_prize_count = msg.first_prize_count.unwrap_or_else(|| msg.scale.default_first_prize_count());
+/// 迁移：空置实现，为未来升级预留
+pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, ContractError> {
+    // 空置实现，当前不需要任何迁移逻辑
+    // 为未来可能的合约升级预留接口
     
-    cfg.total_supply = new_total;
-    cfg.scale = msg.scale;
-    cfg.first_prize_count = new_first_prize_count;
-    CONFIG.save(deps.storage, &cfg)?;
+    // 确保合约版本已更新（这是迁移的基本要求）
+    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    
     Ok(Response::new()
         .add_attribute("action", "migrate")
-        .add_attribute("scale", format_state_scale(&cfg.scale))
-        .add_attribute("first_prize_count", cfg.first_prize_count.to_string()))
+        .add_attribute("message", "Migration completed - no changes applied"))
 }
 
 /// 查询指定地址的累计充值本金
