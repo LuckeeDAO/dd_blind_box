@@ -26,14 +26,14 @@ pub enum VoteState {
     Closed,
 }
 
-/// 预设规模（决定总供应量）
+/// 预设规模（决定总供应量和一等奖中奖人数）
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub enum Scale {
-    Tiny,
-    Small,
-    Medium,
-    Large,
-    Huge,
+    Tiny(u32),   // 1 个一等奖
+    Small(u32),  // 3 个一等奖
+    Medium(u32), // 3 个一等奖
+    Large(u32),  // 5 个一等奖
+    Huge(u32),   // 5 个一等奖
 }
 
 /// 阶段窗口（可设置区块高度或时间的闭区间，满足已设置的所有维度）
@@ -82,4 +82,47 @@ pub const DEPOSITS: Map<Addr, Payout> = Map::new("deposits");
 /// 地址 → 分层结果（1/2/3）
 pub const TIERS: Map<Addr, u8> = Map::new("tiers");
 
+impl Scale {
+    /// 获取当前规模的总供应量
+    pub fn total_supply(&self) -> u64 {
+        match self {
+            Scale::Tiny(_) => 10,
+            Scale::Small(_) => 100,
+            Scale::Medium(_) => 1_000,
+            Scale::Large(_) => 10_000,
+            Scale::Huge(_) => 100_000,
+        }
+    }
 
+    /// 获取当前规模的一等奖中奖人数
+    pub fn first_prize_count(&self) -> u32 {
+        match self {
+            Scale::Tiny(count) => *count,
+            Scale::Small(count) => *count,
+            Scale::Medium(count) => *count,
+            Scale::Large(count) => *count,
+            Scale::Huge(count) => *count,
+        }
+    }
+
+    /// 创建默认的规模实例
+    pub fn new_tiny() -> Self {
+        Scale::Tiny(1)
+    }
+
+    pub fn new_small() -> Self {
+        Scale::Small(3)
+    }
+
+    pub fn new_medium() -> Self {
+        Scale::Medium(3)
+    }
+
+    pub fn new_large() -> Self {
+        Scale::Large(5)
+    }
+
+    pub fn new_huge() -> Self {
+        Scale::Huge(5)
+    }
+}

@@ -9,7 +9,7 @@ mod tests {
         let mut deps = mock_dependencies();
         let env = mock_env();
         let info = MessageInfo { sender: cosmwasm_std::Addr::unchecked("owner"), funds: vec![] };
-        instantiate(deps.as_mut(), env.clone(), info, InstantiateMsg { scale: Scale::Tiny, base: coins(100, "ujunox")[0].clone() }).unwrap();
+        instantiate(deps.as_mut(), env.clone(), info, InstantiateMsg { scale: Scale::new_tiny(), base: coins(100, "ujunox")[0].clone() }).unwrap();
 
         let info_user = MessageInfo { sender: cosmwasm_std::Addr::unchecked("user"), funds: coins(250, "ujunox") };
         let res = execute(deps.as_mut(), env, info_user, ExecuteMsg::Deposit {}).unwrap();

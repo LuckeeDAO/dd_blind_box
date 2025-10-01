@@ -73,21 +73,21 @@ fn test_migrate_success() {
     let (mut deps, env) = setup_test_env();
     
     // 初始化为Tiny规模
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 验证初始配置
     let config_before = query_config(&deps);
-    assert_eq!(config_before.scale, Scale::Tiny);
+    assert_eq!(config_before.scale, Scale::new_tiny());
     assert_eq!(config_before.total_supply, 10);
     
     // 迁移到Small规模
-    let msg = MigrateMsg { scale: Scale::Small };
+    let msg = MigrateMsg { scale: Scale::new_small() };
     let result = migrate(deps.as_mut(), env, msg);
     assert!(result.is_ok());
     
     // 验证迁移后的配置
     let config_after = query_config(&deps);
-    assert_eq!(config_after.scale, Scale::Small);
+    assert_eq!(config_after.scale, Scale::new_small());
     assert_eq!(config_after.total_supply, 100);
     
     // 验证其他字段保持不变
@@ -99,18 +99,18 @@ fn test_migrate_success() {
 #[test]
 fn test_migrate_all_scales() {
     let scales = vec![
-        (Scale::Tiny, 10),
-        (Scale::Small, 100),
-        (Scale::Medium, 1_000),
-        (Scale::Large, 10_000),
-        (Scale::Huge, 100_000),
+        (Scale::new_tiny(), 10),
+        (Scale::new_small(), 100),
+        (Scale::new_medium(), 1_000),
+        (Scale::new_large(), 10_000),
+        (Scale::new_huge(), 100_000),
     ];
     
     for (scale, expected_supply) in scales {
         let (mut deps, env) = setup_test_env();
         
         // 初始化为Tiny规模
-        instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+        instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
         
         // 迁移到目标规模
         let msg = MigrateMsg { scale: scale.clone() };
@@ -129,16 +129,16 @@ fn test_migrate_same_scale() {
     let (mut deps, env) = setup_test_env();
     
     // 初始化为Medium规模
-    instantiate_contract(&mut deps, &env, Scale::Medium, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_medium(), BASE_AMOUNT).unwrap();
     
     // 迁移到相同的Medium规模
-    let msg = MigrateMsg { scale: Scale::Medium };
+    let msg = MigrateMsg { scale: Scale::new_medium() };
     let result = migrate(deps.as_mut(), env, msg);
     assert!(result.is_ok());
     
     // 验证配置没有变化
     let config = query_config(&deps);
-    assert_eq!(config.scale, Scale::Medium);
+    assert_eq!(config.scale, Scale::new_medium());
     assert_eq!(config.total_supply, 1_000);
 }
 
@@ -147,7 +147,7 @@ fn test_migrate_preserves_state() {
     let (mut deps, env) = setup_test_env();
     
     // 初始化为Tiny规模
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 设置一些状态
     let (msg, info) = create_set_paused_msg(true);
@@ -169,7 +169,7 @@ fn test_migrate_preserves_state() {
     let deposit_before = query_deposit_test(&deps, USER1);
     
     // 迁移到Large规模
-    let msg = MigrateMsg { scale: Scale::Large };
+    let msg = MigrateMsg { scale: Scale::new_large() };
     let result = migrate(deps.as_mut(), env, msg);
     assert!(result.is_ok());
     
@@ -195,16 +195,16 @@ fn test_migrate_scale_up() {
     let (mut deps, env) = setup_test_env();
     
     // 初始化为Small规模
-    instantiate_contract(&mut deps, &env, Scale::Small, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_small(), BASE_AMOUNT).unwrap();
     
     // 迁移到Huge规模
-    let msg = MigrateMsg { scale: Scale::Huge };
+    let msg = MigrateMsg { scale: Scale::new_huge() };
     let result = migrate(deps.as_mut(), env, msg);
     assert!(result.is_ok());
     
     // 验证规模升级
     let config = query_config(&deps);
-    assert_eq!(config.scale, Scale::Huge);
+    assert_eq!(config.scale, Scale::new_huge());
     assert_eq!(config.total_supply, 100_000);
 }
 
@@ -213,16 +213,16 @@ fn test_migrate_scale_down() {
     let (mut deps, env) = setup_test_env();
     
     // 初始化为Large规模
-    instantiate_contract(&mut deps, &env, Scale::Large, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_large(), BASE_AMOUNT).unwrap();
     
     // 迁移到Medium规模
-    let msg = MigrateMsg { scale: Scale::Medium };
+    let msg = MigrateMsg { scale: Scale::new_medium() };
     let result = migrate(deps.as_mut(), env, msg);
     assert!(result.is_ok());
     
     // 验证规模降级
     let config = query_config(&deps);
-    assert_eq!(config.scale, Scale::Medium);
+    assert_eq!(config.scale, Scale::new_medium());
     assert_eq!(config.total_supply, 1_000);
 }
 
@@ -231,7 +231,7 @@ fn test_migrate_with_existing_nfts() {
     let (mut deps, env) = setup_test_env();
     
     // 初始化为Tiny规模
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 铸造一些NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT * 5);
@@ -244,7 +244,7 @@ fn test_migrate_with_existing_nfts() {
     }
     
     // 迁移到Medium规模
-    let msg = MigrateMsg { scale: Scale::Medium };
+    let msg = MigrateMsg { scale: Scale::new_medium() };
     let result = migrate(deps.as_mut(), env.clone(), msg);
     assert!(result.is_ok());
     
@@ -269,19 +269,19 @@ fn test_migrate_with_voting_data() {
     let (mut deps, env) = setup_test_env();
     
     // 初始化为Tiny规模
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 设置投票数据
     setup_voting_data(&mut deps);
     
     // 迁移到Large规模
-    let msg = MigrateMsg { scale: Scale::Large };
+    let msg = MigrateMsg { scale: Scale::new_large() };
     let result = migrate(deps.as_mut(), env, msg);
     assert!(result.is_ok());
     
     // 验证投票数据被保留
     let config = query_config(&deps);
-    assert_eq!(config.scale, Scale::Large);
+    assert_eq!(config.scale, Scale::new_large());
     assert_eq!(config.total_supply, 10_000);
     
     // 验证投票状态被保留
@@ -293,10 +293,10 @@ fn test_migrate_response_attributes() {
     let (mut deps, env) = setup_test_env();
     
     // 初始化为Tiny规模
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 迁移到Small规模
-    let msg = MigrateMsg { scale: Scale::Small };
+    let msg = MigrateMsg { scale: Scale::new_small() };
     let result = migrate(deps.as_mut(), env, msg);
     assert!(result.is_ok());
     
@@ -313,33 +313,33 @@ fn test_migrate_multiple_times() {
     let (mut deps, env) = setup_test_env();
     
     // 初始化为Tiny规模
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 第一次迁移
-    let msg = MigrateMsg { scale: Scale::Small };
+    let msg = MigrateMsg { scale: Scale::new_small() };
     let result = migrate(deps.as_mut(), env.clone(), msg);
     assert!(result.is_ok());
     
     let config = query_config(&deps);
-    assert_eq!(config.scale, Scale::Small);
+    assert_eq!(config.scale, Scale::new_small());
     assert_eq!(config.total_supply, 100);
     
     // 第二次迁移
-    let msg = MigrateMsg { scale: Scale::Medium };
+    let msg = MigrateMsg { scale: Scale::new_medium() };
     let result = migrate(deps.as_mut(), env.clone(), msg);
     assert!(result.is_ok());
     
     let config = query_config(&deps);
-    assert_eq!(config.scale, Scale::Medium);
+    assert_eq!(config.scale, Scale::new_medium());
     assert_eq!(config.total_supply, 1_000);
     
     // 第三次迁移
-    let msg = MigrateMsg { scale: Scale::Large };
+    let msg = MigrateMsg { scale: Scale::new_large() };
     let result = migrate(deps.as_mut(), env, msg);
     assert!(result.is_ok());
     
     let config = query_config(&deps);
-    assert_eq!(config.scale, Scale::Large);
+    assert_eq!(config.scale, Scale::new_large());
     assert_eq!(config.total_supply, 10_000);
 }
 

@@ -13,7 +13,7 @@ use common::*;
 #[test]
 fn test_deposit_success() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 正常充值
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -33,7 +33,7 @@ fn test_deposit_success() {
 #[test]
 fn test_deposit_multiple_base_amounts() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 充值3倍基础金额
     let (msg, info) = create_deposit_msg(BASE_AMOUNT * 3);
@@ -53,7 +53,7 @@ fn test_deposit_multiple_base_amounts() {
 #[test]
 fn test_deposit_insufficient_amount() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 充值金额不足
     let (msg, info) = create_deposit_msg(BASE_AMOUNT - 1);
@@ -68,7 +68,7 @@ fn test_deposit_insufficient_amount() {
 #[test]
 fn test_deposit_zero_amount() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 充值零金额
     let (msg, info) = create_deposit_msg(0);
@@ -79,7 +79,7 @@ fn test_deposit_zero_amount() {
 #[test]
 fn test_deposit_wrong_denom() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 使用错误的币种
     let msg = ExecuteMsg::Deposit {};
@@ -94,7 +94,7 @@ fn test_deposit_wrong_denom() {
 #[test]
 fn test_deposit_accumulation() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 第一次充值
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -112,7 +112,7 @@ fn test_deposit_accumulation() {
 #[test]
 fn test_deposit_exceeds_total_supply() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap(); // total_supply = 10
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap(); // total_supply = 10
     
     // 尝试充值超过总供应量的NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT * 15); // 尝试铸造15个NFT
@@ -128,7 +128,7 @@ fn test_deposit_exceeds_total_supply() {
 #[test]
 fn test_deposit_sequential_token_ids() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 用户1充值
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -164,7 +164,7 @@ fn test_deposit_sequential_token_ids() {
 #[test]
 fn test_deposit_paused() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 设置暂停
     let (msg, info) = create_set_paused_msg(true);
@@ -179,7 +179,7 @@ fn test_deposit_paused() {
 #[test]
 fn test_deposit_query_nonexistent_user() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 查询未充值用户的充值记录
     let deposit = query_deposit_test(&deps, USER1);
@@ -189,7 +189,7 @@ fn test_deposit_query_nonexistent_user() {
 #[test]
 fn test_tier_query_before_finalize() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 充值
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -203,7 +203,7 @@ fn test_tier_query_before_finalize() {
 #[test]
 fn test_tier_query_nonexistent_user() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 查询未参与用户的分层
     let tier = query_tier_test(&deps, USER1);
@@ -213,7 +213,7 @@ fn test_tier_query_nonexistent_user() {
 #[test]
 fn test_deposit_fractional_base_amount() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 充值1.5倍基础金额
     let (msg, info) = create_deposit_msg(BASE_AMOUNT + BASE_AMOUNT / 2);
@@ -233,7 +233,7 @@ fn test_deposit_fractional_base_amount() {
 #[test]
 fn test_deposit_large_scale() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Large, BASE_AMOUNT).unwrap(); // total_supply = 10,000
+    instantiate_contract(&mut deps, &env, Scale::new_large(), BASE_AMOUNT).unwrap(); // total_supply = 10,000
     
     // 充值大量金额
     let (msg, info) = create_deposit_msg(BASE_AMOUNT * 100);

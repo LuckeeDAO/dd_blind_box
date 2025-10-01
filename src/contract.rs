@@ -15,13 +15,7 @@ const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub fn instantiate(deps: DepsMut, _env: Env, info: MessageInfo, msg: InstantiateMsg) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
-    let total_supply: u64 = match msg.scale {
-        Scale::Tiny => 10,
-        Scale::Small => 100,
-        Scale::Medium => 1_000,
-        Scale::Large => 10_000,
-        Scale::Huge => 100_000,
-    };
+    let total_supply: u64 = msg.scale.total_supply();
 
     let config = Config {
         owner: info.sender.clone(),
@@ -79,7 +73,7 @@ fn must_owner(deps: &DepsMut, sender: &cosmwasm_std::Addr) -> Result<Config, Con
 
 /// 仅拥有者：更新基础币种（用于充值与结算）
 fn exec_set_base(deps: DepsMut, info: MessageInfo, base: Coin) -> Result<Response, ContractError> {
-    let mut cfg = must_owner(&deps, &info.sender)?;
+    let mut cfg: Config = must_owner(&deps, &info.sender)?;
     cfg.base = base.clone();
     CONFIG.save(deps.storage, &cfg)?;
     Ok(Response::new().add_attributes(vec![attr("action", "set_base"), attr("denom", base.denom), attr("amount", base.amount)]))
@@ -127,7 +121,15 @@ fn in_window(env: &Env, w: &PhaseWindow) -> bool {
 fn format_state(state: &VoteState) -> String { match state { VoteState::Commit => "commit".to_string(), VoteState::Reveal => "reveal".to_string(), VoteState::Closed => "closed".to_string() } }
 
 /// 将规模枚举转为字符串
-fn format_state_scale(scale: &Scale) -> String { match scale { Scale::Tiny => "tiny".to_string(), Scale::Small => "small".to_string(), Scale::Medium => "medium".to_string(), Scale::Large => "large".to_string(), Scale::Huge => "huge".to_string() } }
+fn format_state_scale(scale: &Scale) -> String { 
+    match scale { 
+        Scale::Tiny(_) => "tiny".to_string(), 
+        Scale::Small(_) => "small".to_string(), 
+        Scale::Medium(_) => "medium".to_string(), 
+        Scale::Large(_) => "large".to_string(), 
+        Scale::Huge(_) => "huge".to_string() 
+    } 
+}
 
 /// 验证状态转换是否合法
 fn validate_state_transition(current: &VoteState, new: &VoteState) -> Result<(), ContractError> {
@@ -401,13 +403,7 @@ fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
 /// 迁移：根据新规模调整总供应量与 scale 字段
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
     let mut cfg = CONFIG.load(deps.storage)?;
-    let new_total: u64 = match msg.scale {
-        Scale::Tiny => 10,
-        Scale::Small => 100,
-        Scale::Medium => 1_000,
-        Scale::Large => 10_000,
-        Scale::Huge => 100_000,
-    };
+    let new_total: u64 = msg.scale.total_supply();
     cfg.total_supply = new_total;
     cfg.scale = msg.scale;
     CONFIG.save(deps.storage, &cfg)?;

@@ -13,7 +13,7 @@ use common::*;
 #[test]
 fn test_unauthorized_operations() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 测试非owner执行owner-only操作
     let unauthorized_operations = vec![
@@ -39,7 +39,7 @@ fn test_unauthorized_operations() {
 #[test]
 fn test_invalid_token_id() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 测试无效的token_id
     let invalid_token_operations = vec![
@@ -73,7 +73,7 @@ fn test_invalid_token_id() {
 #[test]
 fn test_invalid_address() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 测试无效地址
     let invalid_address_operations = vec![
@@ -110,7 +110,7 @@ fn test_invalid_address() {
 #[test]
 fn test_phase_restrictions() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 测试在错误阶段执行操作
     let (msg, info) = create_set_vote_state_msg(VoteState::Reveal);
@@ -139,7 +139,7 @@ fn test_phase_restrictions() {
 #[test]
 fn test_window_restrictions() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 设置关闭窗口，但当前不在窗口内
     let msg = ExecuteMsg::SetClosedWindow {
@@ -167,7 +167,7 @@ fn test_window_restrictions() {
 #[test]
 fn test_deposit_restrictions() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 测试暂停状态下的充值
     let (msg, info) = create_set_paused_msg(true);
@@ -181,7 +181,7 @@ fn test_deposit_restrictions() {
 #[test]
 fn test_nft_authorization_restrictions() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 用户1充值铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -218,7 +218,7 @@ fn test_nft_authorization_restrictions() {
 #[test]
 fn test_commitment_verification() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 提交错误的承诺
     let (msg, info) = create_commit_msg("wrong_commitment".to_string());
@@ -239,7 +239,7 @@ fn test_commitment_verification() {
 #[test]
 fn test_reveal_without_commit() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 直接切换到Reveal阶段
     let (msg, info) = create_set_vote_state_msg(VoteState::Reveal);
@@ -254,7 +254,7 @@ fn test_reveal_without_commit() {
 #[test]
 fn test_deposit_insufficient_funds() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 测试充值金额不足
     let (msg, info) = create_deposit_msg(BASE_AMOUNT - 1);
@@ -267,7 +267,7 @@ fn test_deposit_insufficient_funds() {
 #[test]
 fn test_deposit_wrong_denom() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 测试错误的币种
     let msg = ExecuteMsg::Deposit {};
@@ -284,7 +284,7 @@ fn test_deposit_wrong_denom() {
 #[test]
 fn test_deposit_zero_amount() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 测试零金额充值
     let (msg, info) = create_deposit_msg(0);
@@ -297,7 +297,7 @@ fn test_deposit_zero_amount() {
 #[test]
 fn test_nft_approve_override() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 用户1充值铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -323,7 +323,7 @@ fn test_nft_approve_override() {
 #[test]
 fn test_tier_list_invalid_parameters() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 测试无效的起始地址
     let result = query(deps.as_ref(), mock_env(), QueryMsg::TierList {
@@ -337,7 +337,7 @@ fn test_tier_list_invalid_parameters() {
 #[test]
 fn test_finalize_restrictions() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 测试非owner执行结算
     let msg = ExecuteMsg::Finalize {};
@@ -352,7 +352,7 @@ fn test_finalize_restrictions() {
 #[test]
 fn test_boundary_values() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 测试边界值
     let boundary_tests = vec![
@@ -377,7 +377,7 @@ fn test_boundary_values() {
 #[test]
 fn test_empty_strings() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
     
     // 测试空字符串
     let empty_string_tests = vec![
