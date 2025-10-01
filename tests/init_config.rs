@@ -15,7 +15,7 @@ fn test_instantiate_success() {
     let (mut deps, env) = setup_test_env();
     
     // 测试正常初始化
-    let result = instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT);
+    let result = instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT);
     assert!(result.is_ok());
     
     // 验证配置
@@ -25,18 +25,18 @@ fn test_instantiate_success() {
     assert_eq!(config.base.denom, BASE_DENOM);
     assert_eq!(config.base.amount, Uint128::from(BASE_AMOUNT));
     assert_eq!(config.vote_state, VoteState::Commit);
-    assert_eq!(config.scale, Scale::new_tiny());
+    assert_eq!(config.scale, Scale::Tiny);
 }
 
 #[test]
 fn test_instantiate_different_scales() {
     // 测试不同规模
     let scales = vec![
-        (Scale::new_tiny(), 10),
-        (Scale::new_small(), 100),
-        (Scale::new_medium(), 1_000),
-        (Scale::new_large(), 10_000),
-        (Scale::new_huge(), 100_000),
+        (Scale::Tiny, 10),
+        (Scale::Small, 100),
+        (Scale::Medium, 1_000),
+        (Scale::Large, 10_000),
+        (Scale::Huge, 100_000),
     ];
     
     for (scale, expected_supply) in scales {
@@ -66,8 +66,9 @@ fn test_instantiate_different_base_coins() {
             funds: vec![],
         };
         let msg = InstantiateMsg {
-            scale: Scale::new_tiny(),
+            scale: Scale::Tiny,
             base: base.clone(),
+            first_prize_count: None,
         };
         
         let result = instantiate(deps.as_mut(), env.clone(), info, msg);
@@ -88,11 +89,12 @@ fn test_instantiate_zero_amount() {
         funds: vec![],
     };
     let msg = InstantiateMsg {
-        scale: Scale::new_tiny(),
+        scale: Scale::Tiny,
         base: Coin {
             denom: BASE_DENOM.to_string(),
             amount: Uint128::zero(),
         },
+        first_prize_count: None,
     };
     
     let result = instantiate(deps.as_mut(), env, info, msg);
@@ -102,7 +104,7 @@ fn test_instantiate_zero_amount() {
 #[test]
 fn test_config_query_fields() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_medium(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Medium, BASE_AMOUNT).unwrap();
     
     let config = query_config(&deps);
     
@@ -112,13 +114,13 @@ fn test_config_query_fields() {
     assert_eq!(config.base.denom, BASE_DENOM);
     assert_eq!(config.base.amount, Uint128::from(BASE_AMOUNT));
     assert_eq!(config.vote_state, VoteState::Commit);
-    assert_eq!(config.scale, Scale::new_medium());
+    assert_eq!(config.scale, Scale::Medium);
 }
 
 #[test]
 fn test_set_base_success() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置新的基础币种
     let new_base = Coin {
@@ -138,7 +140,7 @@ fn test_set_base_success() {
 #[test]
 fn test_set_base_unauthorized() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 非owner尝试设置基础币种
     let new_base = Coin {
@@ -159,7 +161,7 @@ fn test_set_base_unauthorized() {
 #[test]
 fn test_set_vote_state_success() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置投票状态为Reveal
     let (msg, info) = create_set_vote_state_msg(VoteState::Reveal);
@@ -174,7 +176,7 @@ fn test_set_vote_state_success() {
 #[test]
 fn test_set_vote_state_unauthorized() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 非owner尝试设置投票状态
     let msg = ExecuteMsg::SetVoteState { state: VoteState::Reveal };
@@ -190,7 +192,7 @@ fn test_set_vote_state_unauthorized() {
 #[test]
 fn test_set_paused_success() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置暂停
     let (msg, info) = create_set_paused_msg(true);
@@ -213,7 +215,7 @@ fn test_set_paused_success() {
 #[test]
 fn test_set_paused_unauthorized() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 非owner尝试设置暂停
     let msg = ExecuteMsg::SetPaused { paused: true };
@@ -229,7 +231,7 @@ fn test_set_paused_unauthorized() {
 #[test]
 fn test_set_commit_window() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置提交窗口
     let msg = ExecuteMsg::SetCommitWindow {
@@ -249,7 +251,7 @@ fn test_set_commit_window() {
 #[test]
 fn test_set_reveal_window() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置揭示窗口
     let msg = ExecuteMsg::SetRevealWindow {
@@ -269,7 +271,7 @@ fn test_set_reveal_window() {
 #[test]
 fn test_set_closed_window() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置关闭窗口
     let msg = ExecuteMsg::SetClosedWindow {
@@ -289,7 +291,7 @@ fn test_set_closed_window() {
 #[test]
 fn test_set_window_unauthorized() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 非owner尝试设置窗口
     let msg = ExecuteMsg::SetCommitWindow {

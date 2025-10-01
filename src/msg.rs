@@ -2,11 +2,12 @@ use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Coin};
 use crate::state::{VoteState, Scale};
 
-/// 实例化参数：用于部署时设置规模与基础币种
+/// 实例化参数：用于部署时设置规模、基础币种与一等奖中奖人数
 #[cw_serde]
 pub struct InstantiateMsg {
     pub scale: Scale,
     pub base: Coin,
+    pub first_prize_count: Option<u32>,  // 可选的一等奖中奖人数，如果不提供则使用规模默认值
 }
 
 /// 执行消息入口（Execute）：涵盖参数更新、充值、投票、结算以及 CW721 类操作
@@ -61,7 +62,7 @@ pub enum QueryMsg {
     Tokens { owner: String, start_after: Option<u64>, limit: Option<u32> },
 }
 
-/// 配置查询返回：拥有者、总供应量、基础币、阶段、规模
+/// 配置查询返回：拥有者、总供应量、基础币、阶段、规模、一等奖中奖人数
 #[cw_serde]
 pub struct ConfigResponse {
     pub owner: String,
@@ -69,11 +70,15 @@ pub struct ConfigResponse {
     pub base: Coin,
     pub vote_state: VoteState,
     pub scale: Scale,
+    pub first_prize_count: u32,
 }
 
-/// 迁移参数：切换规模（将调整总供应量）
+/// 迁移参数：切换规模（将调整总供应量）和一等奖中奖人数
 #[cw_serde]
-pub struct MigrateMsg { pub scale: Scale }
+pub struct MigrateMsg { 
+    pub scale: Scale,
+    pub first_prize_count: Option<u32>,  // 可选的一等奖中奖人数，如果不提供则使用规模默认值
+}
 
 /// 充值查询返回：累计充值本金（字符串表示）
 #[cw_serde]

@@ -13,7 +13,7 @@ use common::*;
 #[test]
 fn test_nft_mint_after_deposit() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 充值后自动铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -32,7 +32,7 @@ fn test_nft_mint_after_deposit() {
 #[test]
 fn test_nft_transfer_owner() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 充值铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -55,7 +55,7 @@ fn test_nft_transfer_owner() {
 #[test]
 fn test_nft_transfer_unauthorized() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 用户1充值铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -74,7 +74,7 @@ fn test_nft_transfer_unauthorized() {
 #[test]
 fn test_nft_transfer_nonexistent_token() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 尝试转移不存在的NFT
     let (msg, info) = create_transfer_msg(USER2.to_string(), 999);
@@ -85,7 +85,7 @@ fn test_nft_transfer_nonexistent_token() {
 #[test]
 fn test_nft_approve_success() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 充值铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -107,7 +107,7 @@ fn test_nft_approve_success() {
 #[test]
 fn test_nft_approve_unauthorized() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 用户1充值铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -126,7 +126,7 @@ fn test_nft_approve_unauthorized() {
 #[test]
 fn test_nft_approve_nonexistent_token() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 尝试授权不存在的NFT
     let (msg, info) = create_approve_msg(OPERATOR.to_string(), 999);
@@ -137,7 +137,7 @@ fn test_nft_approve_nonexistent_token() {
 #[test]
 fn test_nft_revoke_success() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 充值铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -164,7 +164,7 @@ fn test_nft_revoke_success() {
 #[test]
 fn test_nft_revoke_unauthorized() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 用户1充值铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -183,7 +183,7 @@ fn test_nft_revoke_unauthorized() {
 #[test]
 fn test_nft_transfer_by_approved() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 用户1充值铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -210,7 +210,7 @@ fn test_nft_transfer_by_approved() {
 #[test]
 fn test_nft_approve_all_success() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 充值铸造多个NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT * 3);
@@ -229,7 +229,7 @@ fn test_nft_approve_all_success() {
 #[test]
 fn test_nft_approve_all_unauthorized() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 用户1充值铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -252,7 +252,7 @@ fn test_nft_approve_all_unauthorized() {
 #[test]
 fn test_nft_revoke_all_success() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 充值铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -279,7 +279,7 @@ fn test_nft_revoke_all_success() {
 #[test]
 fn test_nft_revoke_all_unauthorized() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 用户1充值铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -302,7 +302,7 @@ fn test_nft_revoke_all_unauthorized() {
 #[test]
 fn test_nft_transfer_by_global_operator() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 用户1充值铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -329,7 +329,7 @@ fn test_nft_transfer_by_global_operator() {
 #[test]
 fn test_nft_query_nonexistent_token() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 查询不存在的NFT
     let result = query(deps.as_ref(), mock_env(), QueryMsg::OwnerOf { token_id: 999 });
@@ -345,7 +345,7 @@ fn test_nft_query_nonexistent_token() {
 #[test]
 fn test_nft_multiple_tokens() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 用户1充值铸造3个NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT * 3);
@@ -375,7 +375,7 @@ fn test_nft_multiple_tokens() {
 #[test]
 fn test_nft_approve_override() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 充值铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);

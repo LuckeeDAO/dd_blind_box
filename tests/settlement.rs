@@ -13,7 +13,7 @@ use common::*;
 #[test]
 fn test_finalize_success() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置完整的投票和结算环境
     setup_finalize_environment(&mut deps, &env);
@@ -35,7 +35,7 @@ fn test_finalize_success() {
 #[test]
 fn test_finalize_wrong_phase() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置投票环境但不在Closed阶段
     setup_voting_environment(&mut deps);
@@ -49,7 +49,7 @@ fn test_finalize_wrong_phase() {
 #[test]
 fn test_finalize_paused() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置暂停
     let (msg, info) = create_set_paused_msg(true);
@@ -67,7 +67,7 @@ fn test_finalize_paused() {
 #[test]
 fn test_finalize_no_voters() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置Closed阶段但没有投票者
     let mut config = dd_blind_box::state::CONFIG.load(&deps.storage).unwrap();
@@ -96,7 +96,7 @@ fn test_finalize_no_voters() {
 #[test]
 fn test_finalize_window_restriction() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置Closed阶段但不在窗口内
     let mut config = dd_blind_box::state::CONFIG.load(&deps.storage).unwrap();
@@ -117,7 +117,7 @@ fn test_finalize_window_restriction() {
 #[test]
 fn test_finalize_tier_assignment() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置结算环境
     setup_finalize_environment(&mut deps, &env);
@@ -138,7 +138,7 @@ fn test_finalize_tier_assignment() {
 #[test]
 fn test_finalize_payout_calculation() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置结算环境
     setup_finalize_environment(&mut deps, &env);
@@ -169,7 +169,7 @@ fn test_finalize_payout_calculation() {
 #[test]
 fn test_finalize_multiple_users() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置多个用户的投票环境
     setup_multiple_users_environment(&mut deps, &env);
@@ -187,7 +187,7 @@ fn test_finalize_multiple_users() {
 #[test]
 fn test_finalize_duplicate() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置结算环境
     setup_finalize_environment(&mut deps, &env);
@@ -206,7 +206,7 @@ fn test_finalize_duplicate() {
 #[test]
 fn test_finalize_unauthorized() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置结算环境
     setup_finalize_environment(&mut deps, &env);
@@ -224,7 +224,7 @@ fn test_finalize_unauthorized() {
 #[test]
 fn test_finalize_tier_ratios() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置10个用户的投票环境
     setup_ten_users_environment(&mut deps, &env);

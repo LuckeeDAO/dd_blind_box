@@ -3,7 +3,7 @@ use cw_storage_plus::{Item, Map};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// 全局配置（只存一份）：包括拥有者、总供应量、基础币、阶段、下一个 token_id、规模、暂停与阶段窗口
+/// 全局配置（只存一份）：包括拥有者、总供应量、基础币、阶段、下一个 token_id、规模、一等奖中奖人数、暂停与阶段窗口
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {
     pub owner: Addr,
@@ -12,6 +12,7 @@ pub struct Config {
     pub vote_state: VoteState,
     pub next_token_id: u64,
     pub scale: Scale,
+    pub first_prize_count: u32,  // 一等奖中奖人数
     pub paused: bool,
     pub commit_window: PhaseWindow,
     pub reveal_window: PhaseWindow,
@@ -26,14 +27,14 @@ pub enum VoteState {
     Closed,
 }
 
-/// 预设规模（决定总供应量和一等奖中奖人数）
+/// 预设规模（决定总供应量）
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub enum Scale {
-    Tiny(u32),   // 1 个一等奖
-    Small(u32),  // 3 个一等奖
-    Medium(u32), // 3 个一等奖
-    Large(u32),  // 5 个一等奖
-    Huge(u32),   // 5 个一等奖
+    Tiny,
+    Small,
+    Medium,
+    Large,
+    Huge,
 }
 
 /// 阶段窗口（可设置区块高度或时间的闭区间，满足已设置的所有维度）
@@ -86,43 +87,22 @@ impl Scale {
     /// 获取当前规模的总供应量
     pub fn total_supply(&self) -> u64 {
         match self {
-            Scale::Tiny(_) => 10,
-            Scale::Small(_) => 100,
-            Scale::Medium(_) => 1_000,
-            Scale::Large(_) => 10_000,
-            Scale::Huge(_) => 100_000,
+            Scale::Tiny => 10,
+            Scale::Small => 100,
+            Scale::Medium => 1_000,
+            Scale::Large => 10_000,
+            Scale::Huge => 100_000,
         }
     }
 
-    /// 获取当前规模的一等奖中奖人数
-    pub fn first_prize_count(&self) -> u32 {
+    /// 获取当前规模的默认一等奖中奖人数
+    pub fn default_first_prize_count(&self) -> u32 {
         match self {
-            Scale::Tiny(count) => *count,
-            Scale::Small(count) => *count,
-            Scale::Medium(count) => *count,
-            Scale::Large(count) => *count,
-            Scale::Huge(count) => *count,
+            Scale::Tiny => 1,
+            Scale::Small => 3,
+            Scale::Medium => 3,
+            Scale::Large => 5,
+            Scale::Huge => 5,
         }
-    }
-
-    /// 创建默认的规模实例
-    pub fn new_tiny() -> Self {
-        Scale::Tiny(1)
-    }
-
-    pub fn new_small() -> Self {
-        Scale::Small(3)
-    }
-
-    pub fn new_medium() -> Self {
-        Scale::Medium(3)
-    }
-
-    pub fn new_large() -> Self {
-        Scale::Large(5)
-    }
-
-    pub fn new_huge() -> Self {
-        Scale::Huge(5)
     }
 }

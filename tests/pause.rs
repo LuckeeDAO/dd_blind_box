@@ -14,7 +14,7 @@ use sha2::Digest;
 #[test]
 fn test_pause_set_success() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 初始状态应该是未暂停
     let _config = query_config(&deps);
@@ -42,7 +42,7 @@ fn test_pause_set_success() {
 #[test]
 fn test_pause_unauthorized() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 非owner尝试设置暂停
     let msg = ExecuteMsg::SetPaused { paused: true };
@@ -57,7 +57,7 @@ fn test_pause_unauthorized() {
 #[test]
 fn test_pause_deposit_blocked() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置暂停
     let (msg, info) = create_set_paused_msg(true);
@@ -72,7 +72,7 @@ fn test_pause_deposit_blocked() {
 #[test]
 fn test_pause_finalize_blocked() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置暂停
     let (msg, info) = create_set_paused_msg(true);
@@ -90,7 +90,7 @@ fn test_pause_finalize_blocked() {
 #[test]
 fn test_pause_voting_allowed() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置窗口以便投票（禁用时间检查）
     let msg = ExecuteMsg::SetCommitWindow {
@@ -145,7 +145,7 @@ fn test_pause_voting_allowed() {
 #[test]
 fn test_pause_nft_operations_allowed() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 先充值铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -182,7 +182,7 @@ fn test_pause_nft_operations_allowed() {
 #[test]
 fn test_pause_queries_allowed() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置暂停
     let (msg, info) = create_set_paused_msg(true);
@@ -205,7 +205,7 @@ fn test_pause_queries_allowed() {
 #[test]
 fn test_pause_admin_operations_allowed() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置暂停
     let (msg, info) = create_set_paused_msg(true);
@@ -231,7 +231,7 @@ fn test_pause_admin_operations_allowed() {
 #[test]
 fn test_pause_window_operations_allowed() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置暂停
     let (msg, info) = create_set_paused_msg(true);
@@ -281,7 +281,7 @@ fn test_pause_window_operations_allowed() {
 #[test]
 fn test_pause_state_persistence() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置暂停
     let (msg, info) = create_set_paused_msg(true);
@@ -309,7 +309,7 @@ fn test_pause_state_persistence() {
 #[test]
 fn test_pause_multiple_operations() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 先充值铸造NFT
     let (msg, info) = create_deposit_msg(BASE_AMOUNT);
@@ -341,7 +341,7 @@ fn test_pause_multiple_operations() {
 #[test]
 fn test_pause_response_attributes() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置暂停
     let (msg, info) = create_set_paused_msg(true);

@@ -38,6 +38,7 @@ fn instantiate_contract(
             denom: BASE_DENOM.to_string(),
             amount: cosmwasm_std::Uint128::from(base_amount),
         },
+        first_prize_count: None,
     };
     dd_blind_box::contract::instantiate(deps.as_mut(), env.clone(), info, msg)
 }
@@ -66,7 +67,7 @@ fn calculate_commitment(addr: &str, reveal: &str, salt: &str) -> String {
 #[test]
 fn test_tier_list_empty() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 查询空的分层列表
     let tier_list = query_tier_list(&deps, 1, None, None);
@@ -77,7 +78,7 @@ fn test_tier_list_empty() {
 #[test]
 fn test_tier_list_with_limit() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置一些分层数据（模拟结算后的状态）
     setup_multiple_tier_data(&mut deps);
@@ -91,7 +92,7 @@ fn test_tier_list_with_limit() {
 #[test]
 fn test_tier_list_with_start_after() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置一些分层数据
     setup_multiple_tier_data(&mut deps);
@@ -107,7 +108,7 @@ fn test_tier_list_with_start_after() {
 #[test]
 fn test_tier_list_different_tiers() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置不同分层的数据
     setup_tier_data(&mut deps);
@@ -131,7 +132,7 @@ fn test_tier_list_different_tiers() {
 #[test]
 fn test_tier_list_pagination() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置多个相同分层的数据
     setup_multiple_tier_data(&mut deps);
@@ -150,7 +151,7 @@ fn test_tier_list_pagination() {
 #[test]
 fn test_tier_list_nonexistent_tier() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 查询不存在的分层
     let tier_list = query_tier_list(&deps, 99, None, None);
@@ -161,7 +162,7 @@ fn test_tier_list_nonexistent_tier() {
 #[test]
 fn test_tier_list_invalid_start_after() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 使用无效的起始地址
     let result = query(deps.as_ref(), mock_env(), QueryMsg::TierList {
@@ -175,7 +176,7 @@ fn test_tier_list_invalid_start_after() {
 #[test]
 fn test_tier_list_large_limit() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置一些分层数据
     setup_tier_data(&mut deps);
@@ -189,7 +190,7 @@ fn test_tier_list_large_limit() {
 #[test]
 fn test_tier_list_zero_limit() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置一些分层数据
     setup_tier_data(&mut deps);
@@ -203,7 +204,7 @@ fn test_tier_list_zero_limit() {
 #[test]
 fn test_tier_list_default_limit() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置一些分层数据
     setup_tier_data(&mut deps);
@@ -217,7 +218,7 @@ fn test_tier_list_default_limit() {
 #[test]
 fn test_tier_list_ordering() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 设置多个分层数据
     setup_multiple_tier_data(&mut deps);
@@ -235,7 +236,7 @@ fn test_tier_list_ordering() {
 #[test]
 fn test_tier_list_after_finalize() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 模拟完整的投票和结算流程
     setup_voting_and_finalize(&mut deps, &env);

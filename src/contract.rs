@@ -16,6 +16,7 @@ pub fn instantiate(deps: DepsMut, _env: Env, info: MessageInfo, msg: Instantiate
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     let total_supply: u64 = msg.scale.total_supply();
+    let first_prize_count = msg.first_prize_count.unwrap_or_else(|| msg.scale.default_first_prize_count());
 
     let config = Config {
         owner: info.sender.clone(),
@@ -24,6 +25,7 @@ pub fn instantiate(deps: DepsMut, _env: Env, info: MessageInfo, msg: Instantiate
         vote_state: VoteState::Commit,
         next_token_id: 0,
         scale: msg.scale.clone(),
+        first_prize_count,
         paused: false,
         commit_window: PhaseWindow { start_height: None, end_height: None, start_time: None, end_time: None },
         reveal_window: PhaseWindow { start_height: None, end_height: None, start_time: None, end_time: None },
@@ -123,11 +125,11 @@ fn format_state(state: &VoteState) -> String { match state { VoteState::Commit =
 /// 将规模枚举转为字符串
 fn format_state_scale(scale: &Scale) -> String { 
     match scale { 
-        Scale::Tiny(_) => "tiny".to_string(), 
-        Scale::Small(_) => "small".to_string(), 
-        Scale::Medium(_) => "medium".to_string(), 
-        Scale::Large(_) => "large".to_string(), 
-        Scale::Huge(_) => "huge".to_string() 
+        Scale::Tiny => "tiny".to_string(), 
+        Scale::Small => "small".to_string(), 
+        Scale::Medium => "medium".to_string(), 
+        Scale::Large => "large".to_string(), 
+        Scale::Huge => "huge".to_string() 
     } 
 }
 
@@ -397,17 +399,30 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<cosmwasm_std::Bi
 /// 查询全局配置（拥有者、总供应量、基础币、阶段、规模）
 fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     let cfg = CONFIG.load(deps.storage)?;
-    Ok(ConfigResponse { owner: cfg.owner.to_string(), total_supply: cfg.total_supply, base: cfg.base, vote_state: cfg.vote_state, scale: cfg.scale })
+    Ok(ConfigResponse { 
+        owner: cfg.owner.to_string(), 
+        total_supply: cfg.total_supply, 
+        base: cfg.base, 
+        vote_state: cfg.vote_state, 
+        scale: cfg.scale,
+        first_prize_count: cfg.first_prize_count,
+    })
 }
 
-/// 迁移：根据新规模调整总供应量与 scale 字段
+/// 迁移：根据新规模调整总供应量与 scale 字段，以及一等奖中奖人数
 pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
     let mut cfg = CONFIG.load(deps.storage)?;
     let new_total: u64 = msg.scale.total_supply();
+    let new_first_prize_count = msg.first_prize_count.unwrap_or_else(|| msg.scale.default_first_prize_count());
+    
     cfg.total_supply = new_total;
     cfg.scale = msg.scale;
+    cfg.first_prize_count = new_first_prize_count;
     CONFIG.save(deps.storage, &cfg)?;
-    Ok(Response::new().add_attribute("action", "migrate").add_attribute("scale", format_state_scale(&cfg.scale)))
+    Ok(Response::new()
+        .add_attribute("action", "migrate")
+        .add_attribute("scale", format_state_scale(&cfg.scale))
+        .add_attribute("first_prize_count", cfg.first_prize_count.to_string()))
 }
 
 /// 查询指定地址的累计充值本金

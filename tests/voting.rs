@@ -13,7 +13,7 @@ use common::*;
 #[test]
 fn test_commit_vote_success() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 正常提交承诺
     let commitment = "test_commitment_hash";
@@ -34,7 +34,7 @@ fn test_commit_vote_success() {
 #[test]
 fn test_commit_vote_wrong_phase() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 切换到Reveal阶段
     let (msg, info) = create_set_vote_state_msg(VoteState::Reveal);
@@ -49,7 +49,7 @@ fn test_commit_vote_wrong_phase() {
 #[test]
 fn test_commit_vote_closed_phase() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 切换到Closed阶段
     let (msg, info) = create_set_vote_state_msg(VoteState::Closed);
@@ -64,7 +64,7 @@ fn test_commit_vote_closed_phase() {
 #[test]
 fn test_commit_vote_duplicate() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 第一次提交
     let (msg, info) = create_commit_msg("commitment1".to_string());
@@ -79,7 +79,7 @@ fn test_commit_vote_duplicate() {
 #[test]
 fn test_reveal_vote_success() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 先提交承诺
     let reveal = "my_vote";
@@ -110,7 +110,7 @@ fn test_reveal_vote_success() {
 #[test]
 fn test_reveal_vote_wrong_phase() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 先提交承诺
     let (msg, info) = create_commit_msg("test_commitment".to_string());
@@ -125,7 +125,7 @@ fn test_reveal_vote_wrong_phase() {
 #[test]
 fn test_reveal_vote_no_commitment() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 切换到Reveal阶段
     let (msg, info) = create_set_vote_state_msg(VoteState::Reveal);
@@ -140,7 +140,7 @@ fn test_reveal_vote_no_commitment() {
 #[test]
 fn test_reveal_vote_commitment_mismatch() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 提交错误的承诺
     let (msg, info) = create_commit_msg("wrong_commitment".to_string());
@@ -161,7 +161,7 @@ fn test_reveal_vote_commitment_mismatch() {
 #[test]
 fn test_reveal_vote_duplicate() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 先提交承诺
     let reveal = "my_vote";
@@ -187,7 +187,7 @@ fn test_reveal_vote_duplicate() {
 #[test]
 fn test_vote_state_transition() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 初始状态应该是Commit
     let config = query_config(&deps);
@@ -218,7 +218,7 @@ fn test_vote_state_transition() {
 #[test]
 fn test_vote_state_transition_unauthorized() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 非owner尝试切换投票状态
     let msg = ExecuteMsg::SetVoteState { state: VoteState::Reveal };
@@ -233,7 +233,7 @@ fn test_vote_state_transition_unauthorized() {
 #[test]
 fn test_multiple_users_voting() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 用户1提交承诺
     let reveal1 = "vote1";
@@ -274,7 +274,7 @@ fn test_multiple_users_voting() {
 #[test]
 fn test_commitment_hash_verification() {
     let (mut deps, env) = setup_test_env();
-    instantiate_contract(&mut deps, &env, Scale::new_tiny(), BASE_AMOUNT).unwrap();
+    instantiate_contract(&mut deps, &env, Scale::Tiny, BASE_AMOUNT).unwrap();
     
     // 测试不同的哈希计算
     let test_cases = vec![

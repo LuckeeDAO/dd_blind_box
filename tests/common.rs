@@ -42,6 +42,7 @@ pub fn instantiate_contract(
             denom: BASE_DENOM.to_string(),
             amount: Uint128::from(base_amount),
         },
+        first_prize_count: None,  // 使用规模默认值
     };
     instantiate(deps.as_mut(), env.clone(), info, msg)
 }
