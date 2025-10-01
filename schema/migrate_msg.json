@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MigrateMsg",
+  "description": "Migrate parameters (switch scale)",
+  "type": "object",
+  "required": [
+    "scale"
+  ],
+  "properties": {
+    "scale": {
+      "$ref": "#/definitions/Scale"
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Scale": {
+      "description": "Predefined participant scales (supply)",
+      "type": "string",
+      "enum": [
+        "Tiny",
+        "Small",
+        "Medium",
+        "Large",
+        "Huge"
+      ]
+    }
+  }
+}

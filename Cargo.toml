@@ -1,0 +1,77 @@
+[package]
+name = "dd_blind_box"
+version = "0.1.0"
+authors = ["Luckee DAO <contact@luckee-dao.com>"]
+edition = "2021"
+description = "A secure CosmWasm smart contract for blind box/NFT minting with decentralized voting and fair reward distribution"
+license = "MIT"
+repository = "https://github.com/luckee-dao/dd_blind_box"
+documentation = "https://docs.rs/dd_blind_box"
+readme = "README.md"
+keywords = [
+    "cosmwasm",
+    "smart-contract",
+    "nft",
+    "blind-box",
+    "voting",
+    "decentralized",
+    "fair-distribution"
+]
+categories = ["cryptography::cryptocurrencies", "web-programming::http-server"]
+rust-version = "1.70"
+include = [
+    "Cargo.toml",
+    "README.md",
+    "LICENSE",
+    "src/**",
+    "tests/**",
+    "schema/**",
+    "scripts/**"
+]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+panic = 'abort'
+incremental = false
+overflow-checks = true
+
+[features]
+library = []
+
+[package.metadata.scripts]
+optimize = """docker run --rm -v \"$(pwd)\":/code \
+  --mount type=volume,source=\"$(basename \"$(pwd)\")_cache\",target=/target \
+  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
+  cosmwasm/optimizer:0.16.0
+"""
+
+[dependencies]
+cosmwasm-schema = { version = "2.2.2", default-features = false }
+cosmwasm-std = "2.2.2"
+cw-storage-plus = "2"
+cw2 = "2"
+schemars = "0.8"
+serde = { version = "1.0", default-features = false, features = ["derive"] }
+thiserror = "1.0"
+
+# Enable alloc feature for ed25519-zebra to satisfy cosmwasm-crypto imports
+ed25519-zebra = { version = "4.1.0", features = ["alloc"] }
+
+dd_algorithms_lib = { path = "../dd_algorithms_lib" }
+
+# hashing for commit verification
+sha2 = "0.10"
+hex = "0.4"
+
+[dev-dependencies]
+dd_blind_box = { path = ".", features = [] }
+
+
