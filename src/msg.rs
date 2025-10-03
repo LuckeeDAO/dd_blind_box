@@ -10,7 +10,7 @@ pub struct InstantiateMsg {
     pub first_prize_count: Option<u32>,  // 可选的一等奖中奖人数，如果不提供则使用规模默认值
 }
 
-/// 执行消息入口（Execute）：涵盖参数更新、充值、投票、结算以及 CW721 类操作
+/// 执行消息入口（Execute）：涵盖参数更新、充值、投票、结算以及 NFT 合约操作
 #[cw_serde]
 pub enum ExecuteMsg {
     SetBase { base: Coin },
@@ -21,10 +21,17 @@ pub enum ExecuteMsg {
     SetCommitWindow { start_height: Option<u64>, end_height: Option<u64>, start_time: Option<u64>, end_time: Option<u64> },
     SetRevealWindow { start_height: Option<u64>, end_height: Option<u64>, start_time: Option<u64>, end_time: Option<u64> },
     SetClosedWindow { start_height: Option<u64>, end_height: Option<u64>, start_time: Option<u64>, end_time: Option<u64> },
+    SetNftContract { nft_contract: String },  // 设置NFT合约地址
+    SetNftCodeId { code_id: u64 },           // 设置NFT合约代码ID
+    InstantiateNftContract {                 // 实例化NFT合约
+        name: String,
+        symbol: String,
+        base_uri: Option<String>,
+    },
     CommitVote { commitment: String },
     RevealVote { reveal: String, salt: String },
     Finalize {},
-    // CW721-like
+    // NFT合约操作（通过外部NFT合约）
     TransferNft { recipient: String, token_id: u64 },
     Approve { spender: String, token_id: u64 },
     Revoke { spender: String, token_id: u64 },
@@ -62,7 +69,7 @@ pub enum QueryMsg {
     Tokens { owner: String, start_after: Option<u64>, limit: Option<u32> },
 }
 
-/// 配置查询返回：拥有者、总供应量、基础币、阶段、规模、一等奖中奖人数
+/// 配置查询返回：拥有者、总供应量、基础币、阶段、规模、一等奖中奖人数、NFT合约地址、NFT代码ID
 #[cw_serde]
 pub struct ConfigResponse {
     pub owner: String,
@@ -71,6 +78,8 @@ pub struct ConfigResponse {
     pub vote_state: VoteState,
     pub scale: Scale,
     pub first_prize_count: u32,
+    pub nft_contract: Option<String>,
+    pub nft_code_id: Option<u64>,
 }
 
 /// 迁移参数：空置接口，为未来升级预留

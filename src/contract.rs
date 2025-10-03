@@ -1,10 +1,10 @@
-use cosmwasm_std::{attr, to_json_binary, BankMsg, Coin, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint128};
+use cosmwasm_std::{attr, to_json_binary, BankMsg, Coin, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint128, SubMsgResponse};
 use sha2::Digest;
 use cw2::set_contract_version;
 
 use crate::error::ContractError;
 use crate::msg::{ApprovalResponse, ConfigResponse, DepositResponse, ExecuteMsg, InstantiateMsg, IsApprovedForAllResponse, MigrateMsg, NftInfoResponse, OwnerOfResponse, QueryMsg, TierListResponse, TierResponse};
-use crate::state::{CommitInfo, Config, Payout, PhaseWindow, RevealInfo, Scale, TokenInfo, VoteState, COMMITS, CONFIG, DEPOSITS, OPERATORS, REVEALS, TOKENS, TIERS};
+use crate::state::{CommitInfo, Config, Payout, PhaseWindow, RevealInfo, Scale, VoteState, COMMITS, CONFIG, DEPOSITS, REVEALS, TIERS};
 // use dd_algorithms_lib::{get_k_dd_rand_num, get_k_dd_rand_num_with_whitelist};
 
 /// 合约名称与版本（用于迁移安全校验）
@@ -30,6 +30,8 @@ pub fn instantiate(deps: DepsMut, _env: Env, info: MessageInfo, msg: Instantiate
         commit_window: PhaseWindow { start_height: None, end_height: None, start_time: None, end_time: None },
         reveal_window: PhaseWindow { start_height: None, end_height: None, start_time: None, end_time: None },
         closed_window: PhaseWindow { start_height: None, end_height: None, start_time: None, end_time: None },
+        nft_contract: None,  // 初始时未设置NFT合约
+        nft_code_id: None,   // 初始时未设置NFT合约代码ID
     };
     CONFIG.save(deps.storage, &config)?;
 
@@ -50,6 +52,9 @@ pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> R
         ExecuteMsg::SetCommitWindow { start_height, end_height, start_time, end_time } => exec_set_window(deps, info, 0, start_height, end_height, start_time, end_time),
         ExecuteMsg::SetRevealWindow { start_height, end_height, start_time, end_time } => exec_set_window(deps, info, 1, start_height, end_height, start_time, end_time),
         ExecuteMsg::SetClosedWindow { start_height, end_height, start_time, end_time } => exec_set_window(deps, info, 2, start_height, end_height, start_time, end_time),
+        ExecuteMsg::SetNftContract { nft_contract } => exec_set_nft_contract(deps, info, nft_contract),
+        ExecuteMsg::SetNftCodeId { code_id } => exec_set_nft_code_id(deps, info, code_id),
+        ExecuteMsg::InstantiateNftContract { name, symbol, base_uri } => exec_instantiate_nft_contract(deps, env, info, name, symbol, base_uri),
         ExecuteMsg::Deposit {} => exec_deposit(deps, info),
         ExecuteMsg::SetVoteState { state } => exec_set_vote_state(deps, info, state),
         ExecuteMsg::CommitVote { commitment } => exec_commit(deps, env, info, commitment),
@@ -66,7 +71,7 @@ pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> R
 
 /// 断言调用者为拥有者，返回最新配置
 fn must_owner(deps: &DepsMut, sender: &cosmwasm_std::Addr) -> Result<Config, ContractError> {
-    let cfg = CONFIG.load(deps.storage)?;
+    let cfg: Config = CONFIG.load(deps.storage)?;
     if cfg.owner != *sender {
         return Err(ContractError::Unauthorized);
     }
@@ -108,6 +113,74 @@ fn exec_set_window(deps: DepsMut, info: MessageInfo, which: u8, start_height: Op
     match which { 0 => cfg.commit_window = w, 1 => cfg.reveal_window = w, _ => cfg.closed_window = w };
     CONFIG.save(deps.storage, &cfg)?;
     Ok(Response::new().add_attributes(vec![attr("action", "set_window"), attr("which", which.to_string())]))
+}
+
+/// 仅拥有者：设置NFT合约地址
+fn exec_set_nft_contract(deps: DepsMut, info: MessageInfo, nft_contract: String) -> Result<Response, ContractError> {
+    let mut cfg = must_owner(&deps, &info.sender)?;
+    let validated_addr = validate_address(&deps.as_ref(), &nft_contract)?;
+    cfg.nft_contract = Some(validated_addr.clone());
+    CONFIG.save(deps.storage, &cfg)?;
+    Ok(Response::new().add_attributes(vec![attr("action", "set_nft_contract"), attr("nft_contract", validated_addr)]))
+}
+
+/// 仅拥有者：设置NFT合约代码ID
+fn exec_set_nft_code_id(deps: DepsMut, info: MessageInfo, code_id: u64) -> Result<Response, ContractError> {
+    let mut cfg = must_owner(&deps, &info.sender)?;
+    cfg.nft_code_id = Some(code_id);
+    CONFIG.save(deps.storage, &cfg)?;
+    Ok(Response::new().add_attributes(vec![attr("action", "set_nft_code_id"), attr("code_id", code_id.to_string())]))
+}
+
+/// 仅拥有者：实例化NFT合约
+fn exec_instantiate_nft_contract(
+    deps: DepsMut, 
+    env: Env, 
+    info: MessageInfo, 
+    name: String, 
+    symbol: String, 
+    base_uri: Option<String>
+) -> Result<Response, ContractError> {
+    let cfg = must_owner(&deps, &info.sender)?;
+    
+    // 检查是否已设置NFT合约代码ID
+    let code_id = cfg.nft_code_id.ok_or_else(|| {
+        ContractError::Std(cosmwasm_std::StdError::generic_err("NFT contract code ID not set"))
+    })?;
+    
+    // 检查是否已存在NFT合约
+    if cfg.nft_contract.is_some() {
+        return Err(ContractError::Std(cosmwasm_std::StdError::generic_err("NFT contract already instantiated")));
+    }
+    
+    // 构建NFT合约实例化消息
+    let instantiate_msg = luckee_nft::msg::InstantiateMsg {
+        name: name.clone(),
+        symbol: symbol.clone(),
+        minter: env.contract.address.to_string(), // 盲盒合约作为铸造者
+        base_uri,
+        allowed_instantiators: Some(vec![env.contract.address.to_string()]), // 只允许盲盒合约实例化
+    };
+    
+    let instantiate_msg_binary = cosmwasm_std::to_json_binary(&instantiate_msg)?;
+    
+    // 创建实例化子消息
+    let submsg = cosmwasm_std::SubMsg::new(cosmwasm_std::WasmMsg::Instantiate {
+        admin: Some(env.contract.address.to_string()), // 盲盒合约作为管理员
+        code_id,
+        msg: instantiate_msg_binary,
+        funds: vec![],
+        label: format!("luckee_nft_{}", name),
+    });
+    
+    Ok(Response::new()
+        .add_submessage(submsg)
+        .add_attributes(vec![
+            attr("action", "instantiate_nft_contract"),
+            attr("name", name),
+            attr("symbol", symbol),
+            attr("code_id", code_id.to_string()),
+        ]))
 }
 
 /// 判断当前区块是否命中窗口设置（高度/时间均为可选闭区间）
@@ -156,19 +229,26 @@ fn validate_address(deps: &Deps, address: &str) -> Result<cosmwasm_std::Addr, Co
     }).map_err(|_| ContractError::Std(cosmwasm_std::StdError::generic_err("Invalid address")))
 }
 
-/// 充值：按基础币倍数计算铸造数量，顺序铸造 NFT（0..n-1）
+/// 充值：按基础币倍数计算铸造数量，通过外部NFT合约铸造 NFT
 fn exec_deposit(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
     if cfg.paused { return Err(ContractError::InvalidState); }
 
+    // 检查是否设置了NFT合约
+    let nft_contract = cfg.nft_contract.as_ref()
+        .ok_or_else(|| ContractError::Std(cosmwasm_std::StdError::generic_err("NFT contract not set")))?;
+
+    let base_denom = cfg.base.denom.clone();
+    let base_amount = cfg.base.amount;
+
     let sent = info
         .funds
         .iter()
-        .find(|c| c.denom == cfg.base.denom)
+        .find(|c| c.denom == base_denom)
         .cloned()
-        .unwrap_or(Coin { denom: cfg.base.denom.clone(), amount: Uint128::zero() });
+        .unwrap_or(Coin { denom: base_denom.clone(), amount: Uint128::zero() });
 
-    if sent.amount.is_zero() || sent.amount < cfg.base.amount {
+    if sent.amount.is_zero() || sent.amount < base_amount {
         return Err(ContractError::Std(cosmwasm_std::StdError::generic_err("insufficient base sent")));
     }
 
@@ -177,38 +257,77 @@ fn exec_deposit(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractEr
     let updated = Payout { principal: existing.principal + sent.amount };
     DEPOSITS.save(deps.storage, info.sender.clone(), &updated)?;
 
-    // Mint/distribute NFTs in multiples of base
-    let multiples = sent.amount / cfg.base.amount;
+    // 计算要铸造的NFT数量
+    let multiples = sent.amount / base_amount;
     let mut minted: u64 = 0;
     let mut next_id = cfg.next_token_id;
-    let mut cfg_mut = cfg;
+    let mut cfg_mut = cfg.clone();
     
     // 检查是否还有NFT可供铸造
     if next_id >= cfg_mut.total_supply {
         return Err(ContractError::NoNftsAvailable);
     }
     
+    // 准备批量铸造消息
+    let mut batch_mints = Vec::new();
     for _ in 0..multiples.u128() {
         if next_id >= cfg_mut.total_supply {
             break;
         }
-        TOKENS.save(deps.storage, next_id, &TokenInfo { owner: info.sender.clone(), approved: None })?;
+        
+        // 创建NFT元数据
+        let nft_meta = luckee_nft::types::NftMeta {
+            kind: luckee_nft::types::NftKind::Clover, // 盲盒NFT默认为四叶草
+            scale_origin: match cfg_mut.scale {
+                crate::state::Scale::Tiny => luckee_nft::types::Scale::Tiny,
+                crate::state::Scale::Small => luckee_nft::types::Scale::Small,
+                crate::state::Scale::Medium => luckee_nft::types::Scale::Medium,
+                crate::state::Scale::Large => luckee_nft::types::Scale::Large,
+                crate::state::Scale::Huge => luckee_nft::types::Scale::Huge,
+            },
+            physical_sku: None,
+            crafted_from: None,
+            series_id: format!("blind_box_{}", format_state_scale(&cfg_mut.scale)),
+            collection_group_id: Some(format!("group_{}", next_id / 1000)), // 每1000个NFT一组
+            serial_in_series: next_id,
+        };
+        
+        batch_mints.push(luckee_nft::msg::BatchMintItem {
+            token_id: next_id,
+            owner: info.sender.to_string(),
+            extension: nft_meta,
+        });
+        
         next_id += 1;
         minted += 1;
     }
-    cfg_mut.next_token_id = next_id;
-    CONFIG.save(deps.storage, &cfg_mut)?;
-
+    
     if minted == 0 {
         return Err(ContractError::NoNftsAvailable);
     }
+    
+    // 更新配置
+    cfg_mut.next_token_id = next_id;
+    CONFIG.save(deps.storage, &cfg_mut)?;
 
-    Ok(Response::new().add_attributes(vec![
-        attr("action", "deposit"),
-        attr("from", info.sender),
-        attr("amount", sent.amount),
-        attr("minted", minted.to_string()),
-    ]))
+    // 调用NFT合约进行批量铸造
+    let mint_msg = luckee_nft::msg::ExecuteMsg::BatchMint { mints: batch_mints };
+    let mint_msg_binary = cosmwasm_std::to_json_binary(&mint_msg)?;
+    
+    let submsg = cosmwasm_std::SubMsg::new(cosmwasm_std::WasmMsg::Execute {
+        contract_addr: nft_contract.to_string(),
+        msg: mint_msg_binary,
+        funds: vec![],
+    });
+
+    Ok(Response::new()
+        .add_submessage(submsg)
+        .add_attributes(vec![
+            attr("action", "deposit"),
+            attr("from", info.sender),
+            attr("amount", sent.amount),
+            attr("minted", minted.to_string()),
+        ]))
 }
 
 /// 存储投票承诺字符串（后续将用 sha256(addr|reveal|salt) 进行验证）
@@ -396,7 +515,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<cosmwasm_std::Bi
     }
 }
 
-/// 查询全局配置（拥有者、总供应量、基础币、阶段、规模）
+/// 查询全局配置（拥有者、总供应量、基础币、阶段、规模、NFT合约地址、NFT代码ID）
 fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
     let cfg = CONFIG.load(deps.storage)?;
     Ok(ConfigResponse { 
@@ -406,7 +525,31 @@ fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         vote_state: cfg.vote_state, 
         scale: cfg.scale,
         first_prize_count: cfg.first_prize_count,
+        nft_contract: cfg.nft_contract.map(|addr| addr.to_string()),
+        nft_code_id: cfg.nft_code_id,
     })
+}
+
+/// 处理子消息回调
+pub fn reply(deps: DepsMut, _env: Env, msg: SubMsgResponse) -> Result<Response, ContractError> {
+    // 检查是否是NFT合约实例化成功的回调
+    if let Some(event) = msg.events.iter().find(|e| e.ty == "instantiate") {
+        if let Some(contract_address) = event.attributes.iter()
+            .find(|attr| attr.key == "_contract_address")
+            .map(|attr| &attr.value) {
+            
+            // 保存NFT合约地址到配置中
+            let mut cfg = CONFIG.load(deps.storage)?;
+            cfg.nft_contract = Some(deps.api.addr_validate(contract_address)?);
+            CONFIG.save(deps.storage, &cfg)?;
+            
+            return Ok(Response::new()
+                .add_attribute("action", "nft_contract_instantiated")
+                .add_attribute("contract_address", contract_address));
+        }
+    }
+    
+    Ok(Response::new().add_attribute("action", "reply_success"))
 }
 
 /// 迁移：空置实现，为未来升级预留
@@ -436,87 +579,193 @@ fn query_tier(deps: Deps, address: String) -> StdResult<TierResponse> {
     Ok(TierResponse { tier: t })
 }
 
-/// 判断是否为全局操作员（owner, operator）
-fn is_operator(deps: Deps, owner: &cosmwasm_std::Addr, operator: &cosmwasm_std::Addr) -> bool {
-    OPERATORS.may_load(deps.storage, (owner.clone(), operator.clone())).unwrap_or(None).unwrap_or(false)
+// 移除不再使用的is_operator函数，因为NFT操作现在通过外部合约处理
+
+/// 转移 NFT：通过外部NFT合约执行
+fn exec_transfer(deps: DepsMut, _info: MessageInfo, recipient: String, token_id: u64) -> Result<Response, ContractError> {
+    let cfg = CONFIG.load(deps.storage)?;
+    let nft_contract = cfg.nft_contract.as_ref()
+        .ok_or_else(|| ContractError::Std(cosmwasm_std::StdError::generic_err("NFT contract not set")))?;
+
+    let transfer_msg = luckee_nft::msg::ExecuteMsg::TransferNft { 
+        recipient: recipient.clone(), 
+        token_id 
+    };
+    let transfer_msg_binary = cosmwasm_std::to_json_binary(&transfer_msg)?;
+    
+    let submsg = cosmwasm_std::SubMsg::new(cosmwasm_std::WasmMsg::Execute {
+        contract_addr: nft_contract.to_string(),
+        msg: transfer_msg_binary,
+        funds: vec![],
+    });
+
+    Ok(Response::new()
+        .add_submessage(submsg)
+        .add_attributes(vec![
+            attr("action", "transfer_nft"), 
+            attr("token_id", token_id.to_string()), 
+            attr("to", recipient)
+        ]))
 }
 
-/// 转移 NFT：需为所有者/已授权地址/全局操作员
-fn exec_transfer(deps: DepsMut, info: MessageInfo, recipient: String, token_id: u64) -> Result<Response, ContractError> {
-    let mut t = TOKENS.load(deps.storage, token_id)?;
-    let recipient_addr = validate_address(&deps.as_ref(), &recipient)?;
-    let sender = info.sender;
-    let owner = t.owner.clone();
-    if sender != owner {
-        let approved = t.approved.as_ref();
-        if !(approved.is_some() && approved.unwrap() == &sender) && !is_operator(deps.as_ref(), &owner, &sender) {
-            return Err(ContractError::Unauthorized);
-        }
-    }
-    t.owner = recipient_addr.clone();
-    t.approved = None;
-    TOKENS.save(deps.storage, token_id, &t)?;
-    Ok(Response::new().add_attributes(vec![attr("action", "transfer_nft"), attr("token_id", token_id.to_string()), attr("to", recipient_addr)]))
+/// 授权某地址对单个 NFT 的转移权限：通过外部NFT合约执行
+fn exec_approve(deps: DepsMut, _info: MessageInfo, spender: String, token_id: u64) -> Result<Response, ContractError> {
+    let cfg = CONFIG.load(deps.storage)?;
+    let nft_contract = cfg.nft_contract.as_ref()
+        .ok_or_else(|| ContractError::Std(cosmwasm_std::StdError::generic_err("NFT contract not set")))?;
+
+    let approve_msg = luckee_nft::msg::ExecuteMsg::Approve { 
+        spender: spender.clone(), 
+        token_id,
+        expires: None,
+    };
+    let approve_msg_binary = cosmwasm_std::to_json_binary(&approve_msg)?;
+    
+    let submsg = cosmwasm_std::SubMsg::new(cosmwasm_std::WasmMsg::Execute {
+        contract_addr: nft_contract.to_string(),
+        msg: approve_msg_binary,
+        funds: vec![],
+    });
+
+    Ok(Response::new()
+        .add_submessage(submsg)
+        .add_attributes(vec![
+            attr("action", "approve"), 
+            attr("token_id", token_id.to_string()), 
+            attr("spender", spender)
+        ]))
 }
 
-/// 授权某地址对单个 NFT 的转移权限
-fn exec_approve(deps: DepsMut, info: MessageInfo, spender: String, token_id: u64) -> Result<Response, ContractError> {
-    let mut t = TOKENS.load(deps.storage, token_id)?;
-    if info.sender != t.owner { return Err(ContractError::Unauthorized); }
-    let spender_addr = validate_address(&deps.as_ref(), &spender)?;
-    t.approved = Some(spender_addr.clone());
-    TOKENS.save(deps.storage, token_id, &t)?;
-    Ok(Response::new().add_attributes(vec![attr("action", "approve"), attr("token_id", token_id.to_string()), attr("spender", spender_addr)]))
+/// 撤销单个 NFT 的授权：通过外部NFT合约执行
+fn exec_revoke(deps: DepsMut, _info: MessageInfo, spender: String, token_id: u64) -> Result<Response, ContractError> {
+    let cfg = CONFIG.load(deps.storage)?;
+    let nft_contract = cfg.nft_contract.as_ref()
+        .ok_or_else(|| ContractError::Std(cosmwasm_std::StdError::generic_err("NFT contract not set")))?;
+
+    let revoke_msg = luckee_nft::msg::ExecuteMsg::Revoke { 
+        spender: spender.clone(), 
+        token_id 
+    };
+    let revoke_msg_binary = cosmwasm_std::to_json_binary(&revoke_msg)?;
+    
+    let submsg = cosmwasm_std::SubMsg::new(cosmwasm_std::WasmMsg::Execute {
+        contract_addr: nft_contract.to_string(),
+        msg: revoke_msg_binary,
+        funds: vec![],
+    });
+
+    Ok(Response::new()
+        .add_submessage(submsg)
+        .add_attributes(vec![
+            attr("action", "revoke"), 
+            attr("token_id", token_id.to_string()), 
+            attr("spender", spender)
+        ]))
 }
 
-/// 撤销单个 NFT 的授权
-fn exec_revoke(deps: DepsMut, info: MessageInfo, spender: String, token_id: u64) -> Result<Response, ContractError> {
-    let mut t = TOKENS.load(deps.storage, token_id)?;
-    if info.sender != t.owner { return Err(ContractError::Unauthorized); }
-    let spender_addr = validate_address(&deps.as_ref(), &spender)?;
-    if t.approved.as_ref() == Some(&spender_addr) { t.approved = None; }
-    TOKENS.save(deps.storage, token_id, &t)?;
-    Ok(Response::new().add_attributes(vec![attr("action", "revoke"), attr("token_id", token_id.to_string()), attr("spender", spender_addr)]))
-}
-
-/// 设置全局操作员（对所有 NFT 有操作权限）
+/// 设置全局操作员（对所有 NFT 有操作权限）：通过外部NFT合约执行
 fn exec_approve_all(deps: DepsMut, info: MessageInfo, operator: String) -> Result<Response, ContractError> {
-    let op_addr = validate_address(&deps.as_ref(), &operator)?;
-    OPERATORS.save(deps.storage, (info.sender.clone(), op_addr.clone()), &true)?;
-    Ok(Response::new().add_attributes(vec![attr("action", "approve_all"), attr("owner", info.sender), attr("operator", op_addr)]))
+    let cfg = CONFIG.load(deps.storage)?;
+    let nft_contract = cfg.nft_contract.as_ref()
+        .ok_or_else(|| ContractError::Std(cosmwasm_std::StdError::generic_err("NFT contract not set")))?;
+
+    let approve_all_msg = luckee_nft::msg::ExecuteMsg::ApproveAll { 
+        operator: operator.clone(),
+        expires: None,
+    };
+    let approve_all_msg_binary = cosmwasm_std::to_json_binary(&approve_all_msg)?;
+    
+    let submsg = cosmwasm_std::SubMsg::new(cosmwasm_std::WasmMsg::Execute {
+        contract_addr: nft_contract.to_string(),
+        msg: approve_all_msg_binary,
+        funds: vec![],
+    });
+
+    Ok(Response::new()
+        .add_submessage(submsg)
+        .add_attributes(vec![
+            attr("action", "approve_all"), 
+            attr("owner", info.sender), 
+            attr("operator", operator)
+        ]))
 }
 
-/// 取消全局操作员
+/// 取消全局操作员：通过外部NFT合约执行
 fn exec_revoke_all(deps: DepsMut, info: MessageInfo, operator: String) -> Result<Response, ContractError> {
-    let op_addr = validate_address(&deps.as_ref(), &operator)?;
-    OPERATORS.save(deps.storage, (info.sender.clone(), op_addr.clone()), &false)?;
-    Ok(Response::new().add_attributes(vec![attr("action", "revoke_all"), attr("owner", info.sender), attr("operator", op_addr)]))
+    let cfg = CONFIG.load(deps.storage)?;
+    let nft_contract = cfg.nft_contract.as_ref()
+        .ok_or_else(|| ContractError::Std(cosmwasm_std::StdError::generic_err("NFT contract not set")))?;
+
+    let revoke_all_msg = luckee_nft::msg::ExecuteMsg::RevokeAll { 
+        operator: operator.clone(),
+    };
+    let revoke_all_msg_binary = cosmwasm_std::to_json_binary(&revoke_all_msg)?;
+    
+    let submsg = cosmwasm_std::SubMsg::new(cosmwasm_std::WasmMsg::Execute {
+        contract_addr: nft_contract.to_string(),
+        msg: revoke_all_msg_binary,
+        funds: vec![],
+    });
+
+    Ok(Response::new()
+        .add_submessage(submsg)
+        .add_attributes(vec![
+            attr("action", "revoke_all"), 
+            attr("owner", info.sender), 
+            attr("operator", operator)
+        ]))
 }
 
-/// 查询 NFT 信息（所有者与单次授权地址）
+/// 查询 NFT 信息：提示用户直接查询NFT合约
 fn query_nft_info(deps: Deps, token_id: u64) -> StdResult<NftInfoResponse> {
-    let t = TOKENS.load(deps.storage, token_id)?;
-    Ok(NftInfoResponse { owner: t.owner.to_string(), approved: t.approved.map(|a| a.to_string()) })
+    let cfg = CONFIG.load(deps.storage)?;
+    if let Some(nft_contract) = cfg.nft_contract {
+        Err(cosmwasm_std::StdError::generic_err(format!(
+            "Please query NFT contract directly at {} for token_id {}", 
+            nft_contract, token_id
+        )))
+    } else {
+        Err(cosmwasm_std::StdError::generic_err("NFT contract not set"))
+    }
 }
 
-/// 查询单次授权（spender）
+/// 查询单次授权：提示用户直接查询NFT合约
 fn query_approval(deps: Deps, token_id: u64) -> StdResult<ApprovalResponse> {
-    let t = TOKENS.load(deps.storage, token_id)?;
-    Ok(ApprovalResponse { spender: t.approved.map(|a| a.to_string()) })
+    let cfg = CONFIG.load(deps.storage)?;
+    if let Some(nft_contract) = cfg.nft_contract {
+        Err(cosmwasm_std::StdError::generic_err(format!(
+            "Please query NFT contract directly at {} for token_id {}", 
+            nft_contract, token_id
+        )))
+    } else {
+        Err(cosmwasm_std::StdError::generic_err("NFT contract not set"))
+    }
 }
 
-/// 查询是否设置了全局操作员
+/// 查询是否设置了全局操作员：提示用户直接查询NFT合约
 fn query_is_approved_for_all(deps: Deps, owner: String, operator: String) -> StdResult<IsApprovedForAllResponse> {
-    let owner_addr = validate_address(&deps, &owner).map_err(|_| cosmwasm_std::StdError::generic_err("Invalid owner address"))?;
-    let op_addr = validate_address(&deps, &operator).map_err(|_| cosmwasm_std::StdError::generic_err("Invalid operator address"))?;
-    let approved = OPERATORS.may_load(deps.storage, (owner_addr, op_addr))?.unwrap_or(false);
-    Ok(IsApprovedForAllResponse { approved })
+    let cfg = CONFIG.load(deps.storage)?;
+    if let Some(nft_contract) = cfg.nft_contract {
+        Err(cosmwasm_std::StdError::generic_err(format!(
+            "Please query NFT contract directly at {} for owner {} and operator {}", 
+            nft_contract, owner, operator
+        )))
+    } else {
+        Err(cosmwasm_std::StdError::generic_err("NFT contract not set"))
+    }
 }
 
-/// 查询 NFT 所有者
+/// 查询 NFT 所有者：提示用户直接查询NFT合约
 fn query_owner_of(deps: Deps, token_id: u64) -> StdResult<OwnerOfResponse> {
-    let t = TOKENS.load(deps.storage, token_id)?;
-    Ok(OwnerOfResponse { owner: t.owner.to_string() })
+    let cfg = CONFIG.load(deps.storage)?;
+    if let Some(nft_contract) = cfg.nft_contract {
+        Err(cosmwasm_std::StdError::generic_err(format!(
+            "Please query NFT contract directly at {} for token_id {}", 
+            nft_contract, token_id
+        )))
+    } else {
+        Err(cosmwasm_std::StdError::generic_err("NFT contract not set"))
+    }
 }
 
 /// 查询指定分层的地址列表（支持分页）
@@ -555,52 +804,43 @@ fn query_tier_list(deps: Deps, tier: u8, start_after: Option<String>, limit: Opt
     Ok(TierListResponse { addresses: addrs, next_start_after: next })
 }
 
-/// 查询Token URI（暂时返回None，可根据需要扩展）
+/// 查询Token URI：提示用户直接查询NFT合约
 fn query_token_uri(deps: Deps, token_id: u64) -> StdResult<crate::msg::TokenUriResponse> {
-    // 检查token是否存在
-    TOKENS.load(deps.storage, token_id)?;
-    Ok(crate::msg::TokenUriResponse { token_uri: None })
+    let cfg = CONFIG.load(deps.storage)?;
+    if let Some(nft_contract) = cfg.nft_contract {
+        Err(cosmwasm_std::StdError::generic_err(format!(
+            "Please query NFT contract directly at {} for token_id {}", 
+            nft_contract, token_id
+        )))
+    } else {
+        Err(cosmwasm_std::StdError::generic_err("NFT contract not set"))
+    }
 }
 
-/// 查询所有Token ID列表
-fn query_all_tokens(deps: Deps, start_after: Option<u64>, limit: Option<u32>) -> StdResult<crate::msg::AllTokensResponse> {
-    let take = limit.unwrap_or(50) as usize;
-    let mut tokens: Vec<u64> = Vec::with_capacity(take);
-    let start = start_after.unwrap_or(0);
-    
-    let iter = TOKENS.range(deps.storage, Some(cw_storage_plus::Bound::exclusive(start + 1)), None, cosmwasm_std::Order::Ascending);
-    for item in iter {
-        let (token_id, _) = item?;
-        if tokens.len() < take {
-            tokens.push(token_id);
-        } else {
-            break;
-        }
+/// 查询所有Token ID列表：提示用户直接查询NFT合约
+fn query_all_tokens(deps: Deps, _start_after: Option<u64>, _limit: Option<u32>) -> StdResult<crate::msg::AllTokensResponse> {
+    let cfg = CONFIG.load(deps.storage)?;
+    if let Some(nft_contract) = cfg.nft_contract {
+        Err(cosmwasm_std::StdError::generic_err(format!(
+            "Please query NFT contract directly at {} for all tokens", 
+            nft_contract
+        )))
+    } else {
+        Err(cosmwasm_std::StdError::generic_err("NFT contract not set"))
     }
-    
-    Ok(crate::msg::AllTokensResponse { tokens })
 }
 
-/// 查询指定用户拥有的Token ID列表
-fn query_tokens(deps: Deps, owner: String, start_after: Option<u64>, limit: Option<u32>) -> StdResult<crate::msg::TokensResponse> {
-    let owner_addr = validate_address(&deps, &owner).map_err(|_| cosmwasm_std::StdError::generic_err("Invalid owner address"))?;
-    let take = limit.unwrap_or(50) as usize;
-    let mut tokens: Vec<u64> = Vec::with_capacity(take);
-    let start = start_after.unwrap_or(0);
-    
-    let iter = TOKENS.range(deps.storage, Some(cw_storage_plus::Bound::exclusive(start + 1)), None, cosmwasm_std::Order::Ascending);
-    for item in iter {
-        let (token_id, token_info) = item?;
-        if token_info.owner == owner_addr {
-            if tokens.len() < take {
-                tokens.push(token_id);
-            } else {
-                break;
-            }
-        }
+/// 查询指定用户拥有的Token ID列表：提示用户直接查询NFT合约
+fn query_tokens(deps: Deps, owner: String, _start_after: Option<u64>, _limit: Option<u32>) -> StdResult<crate::msg::TokensResponse> {
+    let cfg = CONFIG.load(deps.storage)?;
+    if let Some(nft_contract) = cfg.nft_contract {
+        Err(cosmwasm_std::StdError::generic_err(format!(
+            "Please query NFT contract directly at {} for owner {}", 
+            nft_contract, owner
+        )))
+    } else {
+        Err(cosmwasm_std::StdError::generic_err("NFT contract not set"))
     }
-    
-    Ok(crate::msg::TokensResponse { tokens })
 }
 
 

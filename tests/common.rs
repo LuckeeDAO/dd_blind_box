@@ -4,7 +4,7 @@ use cosmwasm_std::{
     coins, testing::{mock_dependencies, mock_env}, Coin, Uint128, OwnedDeps, MessageInfo
 };
 use dd_blind_box::{
-    contract::{instantiate, query},
+    contract::{instantiate, query, execute},
     msg::{ExecuteMsg, InstantiateMsg, QueryMsg},
     state::{Scale, VoteState},
 };
@@ -44,7 +44,15 @@ pub fn instantiate_contract(
         },
         first_prize_count: None,  // 使用规模默认值
     };
-    instantiate(deps.as_mut(), env.clone(), info, msg)
+    let res = instantiate(deps.as_mut(), env.clone(), info.clone(), msg)?;
+    
+    // 设置NFT合约地址（测试环境需要）
+    let set_nft_msg = ExecuteMsg::SetNftContract { 
+        nft_contract: cosmwasm_std::Addr::unchecked("nft_contract").to_string() 
+    };
+    execute(deps.as_mut(), env.clone(), info, set_nft_msg)?;
+    
+    Ok(res)
 }
 
 /// 创建充值消息

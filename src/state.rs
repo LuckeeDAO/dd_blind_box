@@ -3,7 +3,7 @@ use cw_storage_plus::{Item, Map};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-/// 全局配置（只存一份）：包括拥有者、总供应量、基础币、阶段、下一个 token_id、规模、一等奖中奖人数、暂停与阶段窗口
+/// 全局配置（只存一份）：包括拥有者、总供应量、基础币、阶段、下一个 token_id、规模、一等奖中奖人数、暂停与阶段窗口、NFT合约地址和代码ID
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Config {
     pub owner: Addr,
@@ -17,6 +17,8 @@ pub struct Config {
     pub commit_window: PhaseWindow,
     pub reveal_window: PhaseWindow,
     pub closed_window: PhaseWindow,
+    pub nft_contract: Option<Addr>,  // NFT合约地址
+    pub nft_code_id: Option<u64>,   // NFT合约代码ID，用于实例化
 }
 
 /// 投票状态机：提交/揭示/关闭
@@ -46,12 +48,7 @@ pub struct PhaseWindow {
     pub end_time: Option<u64>,
 }
 
-/// 最小化的 Token 信息：顺序 id → 所有者，单次授权地址
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct TokenInfo {
-    pub owner: Addr,
-    pub approved: Option<Addr>,
-}
+// 移除本地NFT存储，改为使用外部NFT合约
 
 /// 承诺记录：保存 commitment 字符串
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -74,9 +71,9 @@ pub struct Payout {
 
 /// 单实例配置项
 pub const CONFIG: Item<Config> = Item::new("config");
-pub const TOKENS: Map<u64, TokenInfo> = Map::new("tokens");
-/// （owner, operator）→ 是否为全局操作员
-pub const OPERATORS: Map<(Addr, Addr), bool> = Map::new("operators");
+// 移除本地NFT存储，改为使用外部NFT合约
+// pub const TOKENS: Map<u64, TokenInfo> = Map::new("tokens");
+// pub const OPERATORS: Map<(Addr, Addr), bool> = Map::new("operators");
 pub const COMMITS: Map<Addr, CommitInfo> = Map::new("commits");
 pub const REVEALS: Map<Addr, RevealInfo> = Map::new("reveals");
 pub const DEPOSITS: Map<Addr, Payout> = Map::new("deposits");
